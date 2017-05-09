@@ -728,47 +728,6 @@ public class Sudoku extends JFrame implements ActionListener {
        
         
         
-        private boolean bruteForceSolve2(int row, int col) {
-            //全てのセルへの入力が終了している場合にメソッドを閉じていく
-            if (row == 9)
-                return true;
-
-            // 注目したセルへ既に数字が入力されている場合に処理を次のセルへ移動する
-            if (!(checkEmptyCell(row,col))) {         //
-                if (bruteForceSolve(col == 8 ? (row + 1): row, (col + 1) % 9))
-                    return true;
-            } else {
-                Integer[] randoms = generateRandomNumbers();
-                for (int i = 0; i < 9; i++) {
-                    // 行、列、3x3ボックス内に数字が重複しない場合に値を代入し、次のセルへ進む
-                    if (!isContainedInRowColumn(row, col, randoms[i]) &&
-                                    !isContainedIn3x3Box(row, col, randoms[i])) {
-                        setCellValues(row, col, randoms[i]);
-                        
-                    //ここから編集//
-               
-                        
-                        // 次のマス（左から右へ、上から下へという順）に進む
-                           //
-                            if (bruteForceSolve(col == 8 ? (row +  1): row, (col + 1) % 9))
-                                return true;
-                        
-                           
-                        
-                        
-                            // 次のマスに入る数字がなく、このマスに別の数字を入れないといけないので、一度入れた数字を初期化する
-                            
-                            setCellValues(row, col, 0);       
-                         
-                         
-                        
-                    }
-                }
-            }
-
-            return false;
-	}
-    
        
         
         
@@ -953,27 +912,19 @@ public class Sudoku extends JFrame implements ActionListener {
                     }
             }
             
-            
+            //１０で初期化、１０なら解がでてることにする。
+            for(int i=0;i<9;i++){
+                    for(int j=0;j<9;j++){
+                        x[i][j] = 10;
+                        
+                    }
+            }
             //解の候補を一意に特定できる空欄がなくなったか判定するフラグ
             boolean loopFlag;
             
             //1種類の数字に着目して入るか入らないかの2択にもっていけたらはやい？
             // cellValuesは元々入っている数字の配列
-     /*       for(int i=0;i<9;i++){
-                    for(int j=0;j<9;j++){
-                      switch(cellValues[i][j]){
-                          
-                          case 0:
-                              break;
-                             
-                              
-                          case 1:
-                              
-                              
-                          
-                      }
-                    }
-            }*/
+    
                     
             
             //全ての空欄がなくなるまで繰り返す
@@ -995,11 +946,12 @@ public class Sudoku extends JFrame implements ActionListener {
                             if(candidateSolution.size()==1){
                                 setCellValues(i, j, candidateSolution.get(0));
                                 loopFlag = true;
-                                exist[i][j] = true;
+                            
+                               
                             }
                             
                             else{
-                                x[i][j] = removeCell.size();//解の候補の数を保存
+                                x[i][j] = candidateSolution.size();//解の候補の数を保存
                             }
                             
                             //解の候補の初期化
@@ -1010,24 +962,19 @@ public class Sudoku extends JFrame implements ActionListener {
                 }
               if(loopFlag==false){
                   
-                  for(int i=0;i<9;i++){
+               /*  for(int i=0;i<9;i++){
                     for(int j=0;j<9;j++){
                         for(int k=2;k<9;k++){
                     
                          if(x[i][j] <= k){
+             */             
                           
-                          
-                             bruteForceSolve(i, j); 
+                             bruteForceSolve2(0, 0,x); 
                              
+                       
                          }
                          
-                        }
                         
-                    }
-                    
-                  }
-                  
-              }
              
                                                                                                                                        
             }
@@ -1036,7 +983,77 @@ public class Sudoku extends JFrame implements ActionListener {
         }
         
         
-        
+        //候補の少ないところからランダムに埋めていきたい
+        private boolean bruteForceSolve2(int row, int col, int x[][]) {
+            //全てのセルへの入力が終了している場合にメソッドを閉じていく
+            if (x[row][col] == 11)
+                return true;
+
+            int y[][][] = new int [81][9][9];
+            int z[] = new int [81]; 
+            
+            //ソート準備
+            for(int i=0;i<9;i++){
+                for(int j=0;j<9;j++){
+                    
+                    z[i+j*9] = x[i][j];                 
+                    
+                }                  
+            }
+            
+            //ソート
+            for(int i=0;i<80;i++){
+                int tmp;
+                if(z[i] > z[i+1]){//入れ替わった時に配列y[][]に元のセルの場所と入れ替えたやつをいれたい
+                    tmp = z[i+1];
+                    z[i+1] = z[i];
+                    z[i] = tmp;
+                    
+                    y[i][i % 8][i/8]= z[i];
+                }
+                else{
+                    y[i][i % 8][i/8]= z[i];//添字の情報がほしい
+                }
+                
+            }
+            
+            // 注目したセルへ既に数字が入力されている場合に処理を次のセルへ移動する
+            if (x[row][col] >= 10) {   //
+                x[row][col] += 1;//埋まっている数字を調べたことを記録 
+                if (bruteForceSolve2(col == 8 ? (row + 1) % 9: row, (col + 1) % 9, x))
+                    return true;
+            } else {
+                Integer[] randoms = generateRandomNumbers();
+                for (int i = 0; i < 9; i++) {
+                    // 行、列、3x3ボックス内に数字が重複しない場合に値を代入し、次のセルへ進む
+                    if (!isContainedInRowColumn(row, col, randoms[i]) &&
+                                    !isContainedIn3x3Box(row, col, randoms[i])) {
+                        setCellValues(row, col, randoms[i]);
+                        
+                    //ここから編集//
+               
+                        
+                        // 次のマス（）に進む
+                           //
+                            if (bruteForceSolve2(col == 8 ? (row +  1) % 9: row, (col + 1) % 9 , x))
+                                return true;
+                        
+                           
+                        
+                        
+                            // 次のマスに入る数字がなく、このマスに別の数字を入れないといけないので、一度入れた数字を初期化する
+                            
+                            setCellValues(row, col, 0);       
+                         
+                         
+                        
+                    }
+                }
+            }
+
+            return false;
+	}
+    
         
         
         /**
